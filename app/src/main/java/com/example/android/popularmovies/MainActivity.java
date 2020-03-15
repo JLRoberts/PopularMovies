@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -16,14 +15,10 @@ import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.example.android.popularmovies.databinding.ActivityMainBinding;
 import com.example.android.popularmovies.model.Movie;
-import com.example.android.popularmovies.util.JsonUtils;
-import com.example.android.popularmovies.util.NetworkUtils;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
+public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler, TaskListener {
 
     // Sort selection spinner entries
     private static final int MOST_POPULAR = 0;
@@ -101,9 +96,27 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
     private void fetchData(String query) {
         if (isOnline()) {
-            new FetchMoviesTask().execute(query);
+            new FetchMoviesTask(this, getString(R.string.API_KEY)).execute(query);
         } else {
             showNoNetwork();
+        }
+    }
+
+    @Override
+    public void onTaskPreExecute() {
+        binding.pbLoadingIndicator.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onTaskPostExecute(ArrayList<Movie> movies) {
+        binding.pbLoadingIndicator.setVisibility(View.INVISIBLE);
+
+        if (movies != null) {
+            showMovieDataView();
+            mMovieList = movies;
+            mMovieAdapter.setMovieData(movies);
+        } else {
+            showErrorMessage();
         }
     }
 
@@ -140,40 +153,5 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             return activeNetworkInfo != null && activeNetworkInfo.isConnected();
         }
         return false;
-    }
-
-    private class FetchMoviesTask extends AsyncTask<String, Void, ArrayList<Movie>> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            binding.pbLoadingIndicator.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected ArrayList<Movie> doInBackground(String... params) {
-            URL movieRequestUrl = NetworkUtils.buildUrl(params[0], getString(R.string.API_KEY));
-            try {
-                String jsonMovieResponse = NetworkUtils.getResponseFromHttpUrl(movieRequestUrl);
-                mMovieList = JsonUtils.parseJsonResponse(jsonMovieResponse);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
-            return mMovieList;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Movie> movies) {
-            super.onPostExecute(movies);
-            binding.pbLoadingIndicator.setVisibility(View.INVISIBLE);
-
-            if (movies != null) {
-                showMovieDataView();
-                mMovieAdapter.setMovieData(movies);
-            } else {
-                showErrorMessage();
-            }
-        }
     }
 }
