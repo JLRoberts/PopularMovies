@@ -6,7 +6,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Toast;
@@ -64,11 +63,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             selectionIndex = savedInstanceState.getInt("selection");
         } else {
             // else fetch default category data from network
-            if (isOnline()) {
-                new FetchMoviesTask().execute("popular");
-            } else {
-                showNoNetwork();
-            }
+            fetchData(POPULAR_QUERY);
         }
 
         binding.sortSelection.setSelected(false);
@@ -78,26 +73,14 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 switch (position) {
                     case MOST_POPULAR:
-                        // don't crash if no network, show toast to notify user
-                        if (isOnline()) {
-                            selectionIndex = MOST_POPULAR;
-                            new FetchMoviesTask().execute(POPULAR_QUERY);
-                            // if selection is changed, scroll to top of list
-                            binding.rvMovies.smoothScrollToPosition(0);
-                        } else {
-                            showNoNetwork();
-                        }
+                        selectionIndex = MOST_POPULAR;
+                        fetchData(POPULAR_QUERY);
+                        binding.rvMovies.smoothScrollToPosition(0);
                         break;
                     case TOP_RATED:
-                        // don't crash if no network, show toast to notify user
-                        if (isOnline()) {
-                            selectionIndex = TOP_RATED;
-                            new FetchMoviesTask().execute(TOP_RATED_QUERY);
-                            // if selection is changed, scroll to top of list
-                            binding.rvMovies.smoothScrollToPosition(0);
-                        } else {
-                            showNoNetwork();
-                        }
+                        selectionIndex = TOP_RATED;
+                        fetchData(TOP_RATED_QUERY);
+                        binding.rvMovies.smoothScrollToPosition(0);
                         break;
                 }
             }
@@ -114,6 +97,14 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         super.onSaveInstanceState(outState);
         outState.putParcelableArrayList("movies", mMovieList);
         outState.putInt("selection", selectionIndex);
+    }
+
+    private void fetchData(String query) {
+        if (isOnline()) {
+            new FetchMoviesTask().execute(query);
+        } else {
+            showNoNetwork();
+        }
     }
 
     private void showMovieDataView() {
